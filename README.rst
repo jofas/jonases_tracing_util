@@ -9,7 +9,7 @@ Based on the `tracing <https://github.com/tokio-rs/tracing>`_ and
 **NOTE**: the library depends on the ``RUST_LOG`` environment
 variable. Make sure that you enable logging for this crate, e.g.:
 
-.. code::bash
+.. code:: bash
 
    RUST_LOG=jonases_tracing_util=info cargo run
 
