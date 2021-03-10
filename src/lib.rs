@@ -1,3 +1,5 @@
+pub use tracing;
+
 use tracing::{event, Level};
 
 use std::env::{self, VarError};
@@ -7,11 +9,12 @@ static INIT: Once = Once::new();
 
 pub fn init_logger() {
   INIT.call_once(|| {
-  tracing_subscriber::fmt()
-    .with_ansi(false)
-    .with_env_filter(
-      tracing_subscriber::EnvFilter::from_default_env()
-    ).init();
+    tracing_subscriber::fmt()
+      .with_ansi(false)
+      .with_env_filter(
+        tracing_subscriber::EnvFilter::from_default_env(),
+      )
+      .init();
   });
 }
 
