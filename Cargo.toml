@@ -9,3 +9,5 @@ edition = "2018"
 [dependencies]
 tracing = "^0.1.25"
 tracing-subscriber = "^0.2.16"
+uuid = { version = "^0.8.2", features = ["v4", "serde"] }
+actix_web = "^3.3.2"
