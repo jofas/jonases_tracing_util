@@ -75,7 +75,7 @@ macro_rules! scoped_logger {
                       String::from_utf8_lossy(bytes)
                     },
                     jonases_tracing_util::actix_web::dev::Body::Message(msg) => {
-                      *msg.downcast_ref().unwrap_or("no response body").to_owned()
+                      **msg.downcast_ref().unwrap_or("no response body").to_owned()
                     },
                     _ => "no response body".to_owned(),
                   }
