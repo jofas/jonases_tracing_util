@@ -3,6 +3,7 @@ pub use tracing;
 // re-export for scoped_logger! macro
 pub use actix_web;
 pub use uuid;
+pub use futures;
 
 use tracing::{event, Level};
 
@@ -51,6 +52,8 @@ pub fn logged_var(variable_name: &str) -> Result<String, VarError> {
 macro_rules! scoped_logger {
   () => {
     |req, srv| {
+      use jonases_tracing_util::futures::stream::StreamExt;
+
       let request_id = jonases_tracing_util::uuid::Uuid::new_v4();
       let uri = req.uri().clone();
       let res = srv.call(req);
@@ -68,10 +71,20 @@ macro_rules! scoped_logger {
           Ok(mut res) => {
             if !res.status().is_success() {
               res = res.map_body(|_, b| {
+                let buf =
+                  jonases_tracing_util::actix_web::web::BytesMut::new();
+
+                let body = b.fold(buf, |mut acc, x| {
+                  acc.extend_from_slice(&*x);
+                  acc
+                });
+
+                jonases_tracing_util::log_simple_err("unsuccessful response", &err);
+
+                /*
                 if let Some(body) = b.as_ref() {
                   if let jonases_tracing_util::actix_web::dev::Body::Bytes(bytes) = body {
                     let err = String::from_utf8_lossy(bytes);
-                    jonases_tracing_util::log_simple_err("unsuccessful response", &err);
                   } else {
                     let err = format!("{:?}", body);
                     jonases_tracing_util::log_simple_err("unsuccessful response", &err);
@@ -81,6 +94,8 @@ macro_rules! scoped_logger {
                   jonases_tracing_util::log_simple_err("unsuccessful response", &err);
                 }
                 b
+                */
+                body
               });
             }
             jonases_tracing_util::tracing::event!(
