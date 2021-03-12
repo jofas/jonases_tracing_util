@@ -102,22 +102,25 @@ macro_rules! scoped_logger {
                   },
                 };
 
-                if let Some(err) = err_body {
-                  jonases_tracing_util::tracing::event!(
-                    jonases_tracing_util::tracing::Level::ERROR,
-                    msg = "unsuccessful response",
-                    err_body = %err,
-                  );
+                match err_body {
+                  Some(err) if err != "" => {
+                    jonases_tracing_util::tracing::event!(
+                      jonases_tracing_util::tracing::Level::ERROR,
+                      msg = "unsuccessful response",
+                      err_body = %err,
+                    );
 
-                  ResponseBody::Body(Body::Bytes(Bytes::from(err)))
-                } else {
-                  jonases_tracing_util::tracing::event!(
-                    jonases_tracing_util::tracing::Level::ERROR,
-                    msg = "unsuccessful response",
-                    err_body = "none",
-                  );
+                    ResponseBody::Body(Body::Bytes(Bytes::from(err)))
+                  },
+                  _ => {
+                    jonases_tracing_util::tracing::event!(
+                      jonases_tracing_util::tracing::Level::ERROR,
+                      msg = "unsuccessful response",
+                      err_body = "none",
+                    );
 
-                  ResponseBody::Body(Body::None)
+                    ResponseBody::Body(Body::None)
+                  }
                 }
               });
             } else {
