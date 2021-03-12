@@ -52,8 +52,6 @@ pub fn logged_var(variable_name: &str) -> Result<String, VarError> {
 macro_rules! scoped_logger {
   () => {
     |req, srv| {
-      use jonases_tracing_util::futures::stream::StreamExt;
-
       let request_id = jonases_tracing_util::uuid::Uuid::new_v4();
       let uri = req.uri().clone();
       let res = srv.call(req);
@@ -71,45 +69,40 @@ macro_rules! scoped_logger {
           Ok(mut res) => {
             if !res.status().is_success() {
               res = res.map_body(|_, b| {
-                let buf =
-                  jonases_tracing_util::actix_web::web::BytesMut::new();
-
-                let body = b.fold(buf, |mut acc, x| {
-                  acc.extend_from_slice(&*x);
-                  acc
-                }).await;
-
-                jonases_tracing_util::log_simple_err("unsuccessful response", &err);
-
-                /*
-                if let Some(body) = b.as_ref() {
-                  if let jonases_tracing_util::actix_web::dev::Body::Bytes(bytes) = body {
-                    let err = String::from_utf8_lossy(bytes);
-                  } else {
-                    let err = format!("{:?}", body);
-                    jonases_tracing_util::log_simple_err("unsuccessful response", &err);
+                let err_body = if let Some(body) = b.as_ref() {
+                  match body {
+                    jonases_tracing_util::actix_web::dev::Body::Bytes(bytes) => {
+                      String::from_utf8_lossy(bytes)
+                    },
+                    jonases_tracing_util::actix_web::dev::Body::Message(msg) => {
+                      msg.downcast_ref().unwrap_or("no response body").to_owned()
+                    },
+                    _ => "no response body".to_owned(),
                   }
                 } else {
-                  let err = "no response body";
-                  jonases_tracing_util::log_simple_err("unsuccessful response", &err);
-                }
+                  "no response body".to_owned();
+                };
+
+                jonases_tracing_util::tracing::event!(
+                  jonases_tracing_util::tracing::Level::ERROR,
+                  msg = "unsuccessful response",
+                  %err_body,
+                );
+
                 b
-                */
-                jonases_tracing_util::actix_web::dev::ResponseBody::Other(
-                  jonases_tracing_util::actix_web::dev::Body::Bytes(body.into())
-                )
               });
+            } else {
+              jonases_tracing_util::tracing::event!(
+                jonases_tracing_util::tracing::Level::INFO,
+                "successful response"
+              );
             }
-            jonases_tracing_util::tracing::event!(
-              jonases_tracing_util::tracing::Level::INFO,
-              "successful response"
-            );
             Ok(res)
-          }
+          },
           Err(e) => {
             jonases_tracing_util::log_simple_err("unsuccessful response", &e);
             Err(e)
-          }
+          },
         }
       }
     }
