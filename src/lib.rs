@@ -47,11 +47,35 @@ pub fn logged_var(variable_name: &str) -> Result<String, VarError> {
   })
 }
 
+use actix_web::dev::{Body, MessageBody};
+
+pub fn extract_body(body: Body) -> Option<String> {
+  match body {
+    Body::Bytes(bytes) => {
+      Some((&*String::from_utf8_lossy(&*bytes)).to_owned())
+    },
+    Body::Message(msg) => {
+      Some((msg as Box<dyn MessageBody>)
+        .downcast_ref::<String>()
+        .unwrap_or(&"".to_owned())
+        .to_owned())
+    },
+    _ => None,
+  }
+}
+
 // I'm too lazy to use proper actix types, they totally overdid it
 #[macro_export]
 macro_rules! scoped_logger {
   () => {
     |req, srv| {
+      use jonases_tracing_util::actix_web::dev::{
+        Service, Body, MessageBody, ResponseBody,
+      };
+      use jonases_tracing_util::actix_web::web::{
+        Bytes,
+      };
+
       let request_id = jonases_tracing_util::uuid::Uuid::new_v4();
       let uri = req.uri().clone();
       let res = srv.call(req);
@@ -69,27 +93,32 @@ macro_rules! scoped_logger {
           Ok(mut res) => {
             if !res.status().is_success() {
               res = res.map_body(|_, b| {
-                let err_body = if let Some(body) = b.as_ref() {
-                  match body {
-                    jonases_tracing_util::actix_web::dev::Body::Bytes(bytes) => {
-                      String::from_utf8_lossy(bytes)
-                    },
-                    jonases_tracing_util::actix_web::dev::Body::Message(msg) => {
-                      (**msg as jonases_tracing_util::actix_web::dev::MessageBody).downcast_ref().unwrap_or("no response body").to_owned()
-                    },
-                    _ => "no response body".to_owned(),
-                  }
-                } else {
-                  "no response body".to_owned();
+                let err_body = match b {
+                  ResponseBody::Body(body) => {
+                    jonases_tracing_util::extract_body(body)
+                  },
+                  ResponseBody::Other(body) => {
+                    jonases_tracing_util::extract_body(body)
+                  },
                 };
 
-                jonases_tracing_util::tracing::event!(
-                  jonases_tracing_util::tracing::Level::ERROR,
-                  msg = "unsuccessful response",
-                  %err_body,
-                );
+                if let Some(err) = err_body {
+                  jonases_tracing_util::tracing::event!(
+                    jonases_tracing_util::tracing::Level::ERROR,
+                    msg = "unsuccessful response",
+                    err_body = %err,
+                  );
 
-                b
+                  ResponseBody::Body(Body::Bytes(Bytes::from(err)))
+                } else {
+                  jonases_tracing_util::tracing::event!(
+                    jonases_tracing_util::tracing::Level::ERROR,
+                    msg = "unsuccessful response",
+                    err_body = "none",
+                  );
+
+                  ResponseBody::Body(Body::None)
+                }
               });
             } else {
               jonases_tracing_util::tracing::event!(
