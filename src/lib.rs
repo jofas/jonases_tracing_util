@@ -77,7 +77,7 @@ macro_rules! scoped_logger {
                 let body = b.fold(buf, |mut acc, x| {
                   acc.extend_from_slice(&*x);
                   acc
-                });
+                }).await;
 
                 jonases_tracing_util::log_simple_err("unsuccessful response", &err);
 
