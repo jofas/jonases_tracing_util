@@ -95,7 +95,7 @@ macro_rules! scoped_logger {
                 }
                 b
                 */
-                body
+                jonases_tracing_util::actix_web::dev::Body::Bytes(&*body)
               });
             }
             jonases_tracing_util::tracing::event!(
