@@ -17,6 +17,8 @@ variable. Make sure that you enable logging for this crate, e.g.:
 TODO
 ----
 
+* functions to macros too (then module is not a problem anymore)
+
 * documentation
 
 * publish
