@@ -69,21 +69,33 @@ macro_rules! scoped_logger {
 
         match res.await {
           Ok(mut res) => {
+            let status = res.status();
+
             if !res.status().is_success() {
               jonases_tracing_util::tracing::event!(
                 jonases_tracing_util::tracing::Level::ERROR,
-                "unsuccessful response",
+                msg = "unsuccessful response",
+                status = %status,
               );
             } else {
               jonases_tracing_util::tracing::event!(
                 jonases_tracing_util::tracing::Level::INFO,
-                "successful response",
+                msg = "successful response",
+                status = %status,
               );
             }
             Ok(res)
           },
           Err(e) => {
-            jonases_tracing_util::log_simple_err("unsuccessful response", &e);
+            let status = e.as_response_error().status_code();
+
+            jonases_tracing_util::tracing::event!(
+              jonases_tracing_util::tracing::Level::ERROR,
+              msg = "unsuccessful response",
+              status = %status,
+              error_body = %e,
+            );
+
             Err(e)
           },
         }
