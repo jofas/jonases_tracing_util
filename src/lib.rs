@@ -16,6 +16,7 @@ pub fn init_logger() {
   INIT.call_once(|| {
     tracing_subscriber::fmt()
       .with_ansi(false)
+      .without_time()
       .with_env_filter(
         tracing_subscriber::EnvFilter::from_default_env(),
       )
