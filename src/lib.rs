@@ -51,10 +51,28 @@ pub fn logged_var(variable_name: &str) -> Result<String, VarError> {
 #[macro_export]
 macro_rules! scoped_logger {
   () => {
-    |req, srv| {
+    |mut req, srv| {
       use jonases_tracing_util::actix_web::dev::Service;
+      use jonases_tracing_util::actix_web::http::{HeaderName, HeaderValue};
 
-      let request_id = jonases_tracing_util::uuid::Uuid::new_v4();
+      let mut headers = req.headers_mut();
+
+      let request_id = if let Some(id) = headers.get("x-request-id") {
+        (&*String::from_utf8_lossy(id.as_bytes())).to_owned()
+      } else {
+        let request_id =
+          jonases_tracing_util::uuid::Uuid::new_v4().to_string();
+
+        // savely unwrapable, because I know what data I pass
+        let name =
+          HeaderName::from_lowercase(b"x-request-id").unwrap();
+        let value = HeaderValue::from_str(&request_id).unwrap();
+
+        headers.insert(name, value);
+
+        request_id
+      };
+
       let uri = req.uri().clone();
       let res = srv.call(req);
 
