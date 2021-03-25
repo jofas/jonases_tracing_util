@@ -2,8 +2,8 @@ pub use tracing;
 
 // re-export for scoped_logger! macro
 pub use actix_web;
-pub use uuid;
 pub use futures;
+pub use uuid;
 
 use tracing::{event, Level};
 
@@ -47,34 +47,11 @@ pub fn logged_var(variable_name: &str) -> Result<String, VarError> {
   })
 }
 
-use actix_web::dev::{Body, MessageBody};
-
-pub fn extract_body(body: Body) -> Option<String> {
-  match body {
-    Body::Bytes(bytes) => {
-      Some((&*String::from_utf8_lossy(&*bytes)).to_owned())
-    },
-    Body::Message(msg) => {
-      Some((msg as Box<dyn MessageBody>)
-        .downcast_ref::<String>()
-        .unwrap_or(&"".to_owned())
-        .to_owned())
-    },
-    _ => None,
-  }
-}
-
-// I'm too lazy to use proper actix types, they totally overdid it
 #[macro_export]
 macro_rules! scoped_logger {
   () => {
     |req, srv| {
-      use jonases_tracing_util::actix_web::dev::{
-        Service, Body, MessageBody, ResponseBody,
-      };
-      use jonases_tracing_util::actix_web::web::{
-        Bytes,
-      };
+      use jonases_tracing_util::actix_web::dev::Service;
 
       let request_id = jonases_tracing_util::uuid::Uuid::new_v4();
       let uri = req.uri().clone();
@@ -92,41 +69,14 @@ macro_rules! scoped_logger {
         match res.await {
           Ok(mut res) => {
             if !res.status().is_success() {
-              res = res.map_body(|_, b| {
-                let err_body = match b {
-                  ResponseBody::Body(body) => {
-                    jonases_tracing_util::extract_body(body)
-                  },
-                  ResponseBody::Other(body) => {
-                    jonases_tracing_util::extract_body(body)
-                  },
-                };
-
-                match err_body {
-                  Some(err) if err != "" => {
-                    jonases_tracing_util::tracing::event!(
-                      jonases_tracing_util::tracing::Level::ERROR,
-                      msg = "unsuccessful response",
-                      err_body = %err,
-                    );
-
-                    ResponseBody::Body(Body::Bytes(Bytes::from(err)))
-                  },
-                  _ => {
-                    jonases_tracing_util::tracing::event!(
-                      jonases_tracing_util::tracing::Level::ERROR,
-                      msg = "unsuccessful response",
-                      err_body = "none",
-                    );
-
-                    ResponseBody::Body(Body::None)
-                  }
-                }
-              });
+              jonases_tracing_util::tracing::event!(
+                jonases_tracing_util::tracing::Level::ERROR,
+                "unsuccessful response",
+              );
             } else {
               jonases_tracing_util::tracing::event!(
                 jonases_tracing_util::tracing::Level::INFO,
-                "successful response"
+                "successful response",
               );
             }
             Ok(res)
