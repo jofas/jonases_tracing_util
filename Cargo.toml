@@ -3,6 +3,11 @@ name = "jonases-tracing-util"
 version = "0.1.0"
 authors = ["jofas <jonas@fc-web.de>"]
 edition = "2018"
+license = "MIT"
+readme = "README.rst"
+description = "Abstractions over tracing and tracing_subscriber Jonas uses throughout his (mostly actix-web) projects"
+homepage = "https://github.com/jofas/jonases_tracing_util"
+repository = "https://github.com/jofas/jonases_tracing_util"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
