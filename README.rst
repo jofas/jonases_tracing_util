@@ -20,5 +20,3 @@ TODO
 * functions to macros too (then module is not a problem anymore)
 
 * documentation
-
-* publish
