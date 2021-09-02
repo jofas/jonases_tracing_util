@@ -24,8 +24,8 @@ pub fn init_logger() {
   });
 }
 
-pub fn log_simple_err_callback<E: std::fmt::Debug>(
-  msg: &'static str,
+pub fn log_simple_err_callback<E: std::fmt::Debug, M: AsRef<str>>(
+  msg: M,
 ) -> impl FnOnce(E) -> E {
   move |e| {
     log_simple_err(msg, &e);
@@ -33,8 +33,11 @@ pub fn log_simple_err_callback<E: std::fmt::Debug>(
   }
 }
 
-pub fn log_simple_err<E: std::fmt::Debug>(msg: &str, err: &E) {
-  event!(Level::ERROR, msg, error = ?err);
+pub fn log_simple_err<E: std::fmt::Debug, M: AsRef<str>>(
+  msg: M,
+  err: &E,
+) {
+  event!(Level::ERROR, msg = msg.as_ref(), error = ?err);
 }
 
 pub fn logged_var(variable_name: &str) -> Result<String, VarError> {
